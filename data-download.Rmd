@@ -1,0 +1,65 @@
+---
+title: "Untitled"
+runtime: shiny
+output: html_document
+---
+
+This R Markdown document is made interactive using Shiny. Unlike the more traditional workflow of creating static reports, you can now create documents that allow your readers to change the assumptions underlying your analysis and see the results immediately. 
+
+To learn more, see [Interactive Documents](http://rmarkdown.rstudio.com/authoring_shiny.html).
+
+## Inputs and Outputs
+
+You can embed Shiny inputs and outputs in your document. Outputs are automatically updated whenever inputs change.  This demonstrates how a standard R plot can be made interactive by wrapping it in the Shiny `renderPlot` function. The `selectInput` and `sliderInput` functions create the input widgets used to drive the plot.
+
+```{r, echo=FALSE}
+
+# # Define a vector for column types
+# # Column 1-27: character; column 28-38: numeric
+type<-c(rep("factor",27),rep("numeric",11))
+#  
+# Read in the frozen dataset "PSNU"
+# Use option fileEncoding="UTF-8-BOM" for special characters and the first column name problem
+df<-read.delim("~/Documents/ICPI_FactView_PSNU_IM_20161230_v2_2.txt",header=T,colClasses=type,fill=T,fileEncoding="UTF-8-BOM")
+ 
+#df<- read.csv("~/Documents/Data-download/PSNU_IM_test.csv",header = T)
+
+
+# Add a blank before age band value so the variable will be
+# recognized as text when writing csv file
+df$Age<-paste(" ",df$Age)
+ 
+
+ou1 <- levels(df$OperatingUnit)
+ou<- setNames(as.list(ou1),ou1)
+indi1 <- levels(df$indicator)
+indi <- setNames(as.list(indi1),indi1)
+
+df1 <- reactive({
+   subset(df, OperatingUnit==input$ou & indicator==input$indi)  
+  #df[sample(nrow(df), c(input$ou, input$indi)),]
+   })
+
+
+inputPanel(
+  selectInput("ou", label = "Select OU:", choices = ou, selected = NULL, multiple = TRUE),
+  selectInput("indi", label = "Select Indicators", choices = indi, selected = NULL, multiple = TRUE),
+  downloadButton('downloadData', 'Download')
+)
+
+renderTable({
+    head(df1(), n = 10)
+  })
+
+output$downloadData <- downloadHandler(
+    filename = function() { 
+		 paste("PSNU_IM", '.csv', sep='') 
+	 },
+    content = function(file) {
+      write.csv(df1(), file)
+    }
+  )
+
+```
+
+
